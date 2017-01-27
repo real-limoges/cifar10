@@ -22,68 +22,62 @@ def load_training():
     '''
     Loads and reshapes the data for the training set
     '''
-    X_train = np.empty((0, 32 * 32 * 3))
-    y_train = np.empty(1)
-
     for i in xrange(1, 5):
         fname = '../data/data_batch_{}'.format(i)
         data_dict = unpack_data(fname)
 
         if i == 1:
-            X_train = data_dict['data']
-            y_train = data_dict['labels']
+            stacked_features = data_dict['data']
+            stacked_labels = data_dict['labels']
         else:
-            X_train = np.vstack((X_train, data_dict['data']))
-            y_train = np.hstack((y_train, data_dict['labels']))
+            stacked_features = np.vstack((stacked_features, 
+                data_dict['data']))
+            stacked_labels = np.hstack((stacked_labels, 
+                data_dict['labels']))
 
-    X_train = X_train.reshape(
-        (X_train.shape[0], 3, 32, 32)).transpose(0, 2, 3, 1)
+    training_features = stacked_features.reshape(
+        (stacked_features.shape[0], 3, 32, 32)).transpose(0, 2, 3, 1)
+    training_labels = stacked_labels
 
-    return (X_train, y_train)
+    return (training_features, training_labels)
 
 
 def load_validation():
     '''
     Loads and reshapes the data for the validation set
     '''
-
-    X_valid = np.empty((0, 32 * 32 * 3))
-    y_valid = np.empty(1)
-
     fname = '../data/data_batch_4'
     data_dict = unpack_data(fname)
 
-    X_valid = data_dict['data']
-    y_valid = data_dict['labels']
+    X = data_dict['data']
+    y = data_dict['labels']
 
-    X_valid = X_valid.reshape(
-        (X_valid.shape[0], 3, 32, 32)).transpose(0, 2, 3, 1)
+    X_v = X.reshape(
+        (X.shape[0], 3, 32, 32)).transpose(0, 2, 3, 1)
+    y_v = y
 
-    return (X_valid, y_valid)
+    return (X_v, y_v)
 
 
 def load_testing():
     '''
     Loads and reshapes the data for the test set
     '''
-
-    X_test = np.empty((0, 32 * 32 * 3))
-    y_test = np.empty(1)
-
     fname = '../data/test_batch'
     data_dict = unpack_data(fname)
 
-    X_test = data_dict['data']
-    y_test = data_dict['labels']
+    X = data_dict['data']
+    y = data_dict['labels']
 
-    X_test = X_test.reshape(
-        (X_test.shape[0], 3, 32, 32)).transpose(0, 2, 3, 1)
+    X_t = X.reshape(
+        (X.shape[0], 3, 32, 32)).transpose(0, 2, 3, 1)
+    y_t = y
 
-    return (X_test, y_test)
+    return (X_t, y_t)
 
 
 if __name__ == '__main__':
 
-    X_train, y_train = load_training()
-    X_valid, y_valid = load_validation()
-    X_test, y_test = load_testing()
+    features_tr, labels_tr = load_training()
+    features_v, labels_v = load_validation()
+    features_te, labels_te = load_testing()
