@@ -6,6 +6,15 @@ numpy arrays, and then builds and trains a CNN.
 import cPickle
 import numpy as np
 
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Activation, Flatten, \
+    Convolution2D, MaxPooling2D
+from keras.utils import np_utils
+from keras.metrics import precision, recall, categorical_accuracy
+
+# Number of categories/classes
+NB_CLASSES = 10
+
 
 def unpack_data(filename):
     '''
@@ -30,14 +39,14 @@ def load_training():
             stacked_features = data_dict['data']
             stacked_labels = data_dict['labels']
         else:
-            stacked_features = np.vstack((stacked_features, 
-                data_dict['data']))
-            stacked_labels = np.hstack((stacked_labels, 
-                data_dict['labels']))
+            stacked_features = np.vstack((stacked_features,
+                                          data_dict['data']))
+            stacked_labels = np.hstack((stacked_labels,
+                                        data_dict['labels']))
 
     training_features = stacked_features.reshape(
-        (stacked_features.shape[0], 3, 32, 32)).transpose(0, 2, 3, 1)
-    training_labels = stacked_labels
+        (stacked_features.shape[0], 3, 32, 32)).transpose(0, 2, 3, 1).astype('float32') / 255.
+    training_labels = np_utils.to_categorical(stacked_labels, NB_CLASSES)
 
     return (training_features, training_labels)
 
@@ -53,8 +62,8 @@ def load_validation():
     y = data_dict['labels']
 
     X_v = X.reshape(
-        (X.shape[0], 3, 32, 32)).transpose(0, 2, 3, 1)
-    y_v = y
+        (X.shape[0], 3, 32, 32)).transpose(0, 2, 3, 1).astype('float32') / 255.
+    y_v = np_utils.to_categorical(y, NB_CLASSES)
 
     return (X_v, y_v)
 
@@ -70,10 +79,44 @@ def load_testing():
     y = data_dict['labels']
 
     X_t = X.reshape(
-        (X.shape[0], 3, 32, 32)).transpose(0, 2, 3, 1)
-    y_t = y
+        (X.shape[0], 3, 32, 32)).transpose(0, 2, 3, 1).astype('float32') / 255.
+    y_t = np_utils.to_categorical(y, NB_CLASSES)
 
     return (X_t, y_t)
+
+
+def build_model(X):
+    '''
+    Creates a conv net model for the CIFAR10 data
+    '''
+    cifar = Sequential()
+
+    cifar.add(Convolution2D(32, 3, 3, border_mode='same',
+                            input_shape=X.shape[1:]))
+    cifar.add(Activation('relu'))
+    cifar.add(Convolution2D(32, 3, 3))
+    cifar.add(MaxPooling2D(pool_size=(2, 2)))
+    cifar.add(Dropout(0.25))
+
+    cifar.add(Convolution2D(64, 3, 3, border_mode='same'))
+    cifar.add(Activation('relu'))
+    cifar.add(Convolution2D(64, 3, 3))
+    cifar.add(Activation('relu'))
+    cifar.add(MaxPooling2D(pool_size=(2, 2)))
+    cifar.add(Dropout(0.25))
+
+    cifar.add(Flatten())
+    cifar.add(Dense(512))
+    cifar.add(Activation('relu'))
+    cifar.add(Dropout(0.25))
+    cifar.add(Dense(NB_CLASSES))
+    cifar.add(Activation('softmax'))
+
+    cifar.compile(loss='categorical_crossentropy',
+                  optimizer='rmsprop',
+                  metrics=['accuracy'])
+
+    return cifar
 
 
 if __name__ == '__main__':
@@ -81,3 +124,16 @@ if __name__ == '__main__':
     features_tr, labels_tr = load_training()
     features_v, labels_v = load_validation()
     features_te, labels_te = load_testing()
+
+    cifar_model = build_model(features_tr)
+
+    cifar_model.fit(features_tr, labels_tr,
+                    batch_size=64,
+                    nb_epoch=20,
+                    validation_data=(features_v, labels_v),
+                    shuffle=True)
+
+    predictions = cifar_model.predict_classes(features_te, batch_size=64)
+    print categorical_accuracy(labels_te, predictions)
+    print recall(labels_te, predictions)
+    print precision(labels_te, predictions)
