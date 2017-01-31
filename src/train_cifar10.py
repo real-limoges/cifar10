@@ -6,7 +6,7 @@ numpy arrays, and then builds and trains a CNN.
 import cPickle
 import numpy as np
 
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from keras.layers import Dense, Dropout, Activation, Flatten, \
     Convolution2D, MaxPooling2D
 from keras.utils import np_utils
@@ -114,7 +114,7 @@ def build_model(X):
 
     cifar.compile(loss='categorical_crossentropy',
                   optimizer='rmsprop',
-                  metrics=['accuracy'])
+                  metrics=['accuracy', 'precision', 'recall'])
 
     return cifar
 
@@ -125,15 +125,22 @@ if __name__ == '__main__':
     features_v, labels_v = load_validation()
     features_te, labels_te = load_testing()
 
-    cifar_model = build_model(features_tr)
+    train = True 
 
-    cifar_model.fit(features_tr, labels_tr,
+    if train:
+      cifar_model = build_model(features_tr)
+
+      cifar_model.fit(features_tr, labels_tr,
                     batch_size=64,
                     nb_epoch=20,
                     validation_data=(features_v, labels_v),
                     shuffle=True)
+      cifar_model.save('../data/cifar_model_2.h5')
+    
+    else:
+      cifar_model = load_model('../data/cifar_model.h5')
 
-    predictions = cifar_model.predict_classes(features_te, batch_size=64)
-    print categorical_accuracy(labels_te, predictions)
-    print recall(labels_te, predictions)
-    print precision(labels_te, predictions)
+      predictions = cifar_model.evaluate(features_te, labels_te)
+
+      print cifar_model.metrics_names
+
