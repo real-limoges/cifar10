@@ -11,6 +11,8 @@ from keras.layers import Dense, Dropout, Activation, Flatten, \
     Convolution2D, MaxPooling2D
 from keras.utils import np_utils
 from keras.metrics import precision, recall, categorical_accuracy
+from keras.callbacks import TensorBoard
+
 
 # Number of categories/classes
 NB_CLASSES = 10
@@ -45,7 +47,8 @@ def load_training():
                                         data_dict['labels']))
 
     training_features = stacked_features.reshape(
-        (stacked_features.shape[0], 3, 32, 32)).transpose(0, 2, 3, 1).astype('float32') / 255.
+        (stacked_features.shape[0], 3, 32, 32)).transpose(
+        0, 2, 3, 1).astype('float32') / 255.
     training_labels = np_utils.to_categorical(stacked_labels, NB_CLASSES)
 
     return (training_features, training_labels)
@@ -95,6 +98,9 @@ def build_model(X):
                             input_shape=X.shape[1:]))
     cifar.add(Activation('relu'))
     cifar.add(Convolution2D(32, 3, 3))
+    cifar.add(Activation('relu'))
+    cifar.add(Convolution2D(32, 3, 3))
+    cifar.add(Activation('relu'))
     cifar.add(MaxPooling2D(pool_size=(2, 2)))
     cifar.add(Dropout(0.25))
 
@@ -108,7 +114,8 @@ def build_model(X):
     cifar.add(Flatten())
     cifar.add(Dense(512))
     cifar.add(Activation('relu'))
-    cifar.add(Dropout(0.25))
+    cifar.add(Dense(128))
+    cifar.add(Activation('relu'))
     cifar.add(Dense(NB_CLASSES))
     cifar.add(Activation('softmax'))
 
@@ -125,22 +132,22 @@ if __name__ == '__main__':
     features_v, labels_v = load_validation()
     features_te, labels_te = load_testing()
 
-    train = True 
+    train = True
 
     if train:
-      cifar_model = build_model(features_tr)
+        cifar_model = build_model(features_tr)
 
-      cifar_model.fit(features_tr, labels_tr,
-                    batch_size=64,
-                    nb_epoch=20,
-                    validation_data=(features_v, labels_v),
-                    shuffle=True)
-      cifar_model.save('../data/cifar_model_2.h5')
-    
+        cifar_model.fit(features_tr, labels_tr,
+                        batch_size=128,
+                        nb_epoch=50,
+                        validation_data=(features_v, labels_v),
+                        shuffle=True,
+                        callbacks=[TensorBoard(log_dir='/tmp/autoencoder')])
+        cifar_model.save('../data/cifar_model_3.h5')
+
     else:
-      cifar_model = load_model('../data/cifar_model.h5')
+        cifar_model = load_model('../data/cifar_model.h5')
 
-      predictions = cifar_model.evaluate(features_te, labels_te)
+        predictions = cifar_model.evaluate(features_te, labels_te)
 
-      print cifar_model.metrics_names
-
+        print cifar_model.metrics_names
